@@ -50,8 +50,13 @@ def fetch(url):
                 for chunk in r.iter_content(32768):
                     data.extend(chunk)
                     if len(data)>1500000:raise ValueError("ページサイズ制限超過")
-                r.encoding=r.apparent_encoding or "utf-8"
-                return url,data.decode(r.encoding,errors="replace")
+                # stream=True consumes the response in iter_content above.
+                # Do not call apparent_encoding: it attempts to read r.content again.
+                encoding=requests.utils.get_encoding_from_headers(r.headers) or "utf-8"
+                try:
+                    return url,data.decode(encoding,errors="replace")
+                except LookupError:
+                    return url,data.decode("utf-8",errors="replace")
     raise ValueError("リダイレクトが多すぎます。")
 def crawl(start,limit):
     start=validate(start);root=urlparse(start).hostname
